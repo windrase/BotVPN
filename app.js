@@ -335,38 +335,50 @@ const statusReseller = isReseller ? 'Reseller' : 'Bukan Reseller';
   const latency = (Math.random() * 0.1 + 0.01).toFixed(2);
 
   const messageText = `
-╭─ <b>⚡ BOT VPN ${NAMA_STORE} ⚡</b>
-├ Bot VPN Premium dengan sistem otomatis
-├ Pembelian layanan VPN berkualitas tinggi
-└ Akses internet cepat & aman dengan server terpercaya! 
+⚡🔥 <b>BOT VPN ${NAMA_STORE}</b> 🔥⚡
+🌍 Cepat • 🔒 Aman • Unlimited  
 
-<b>👋 Hai, Member <code>${userName}</code>!</b>
-ID: <code>${userId}</code>
-Saldo: <code>Rp ${saldo}</code>
-Status: <code>${statusReseller}</code>
+👋 <b>Halo Selamat Datang, <code>${userName}</code></b>  
+🆔 <b>ID</b>       : <code>${userId}</code>  
+💰 <b>Saldo</b>    : <code>Rp ${saldo}</code>  
+🏷️ <b>Status</b>   : <code>${statusReseller}</code>  
 
-<blockquote>📊 <b>Statistik Anda</b>
-• Hari Ini    : ${userToday} akun
-• Minggu Ini  : ${userWeek} akun
-• Bulan Ini   : ${userMonth} akun
+•━━━━━━━━━━━━•  
+📊 <b>Statistik Anda</b>  
+•━━━━━━━━━━━━•  
+📅 Hari Ini    ➝ <b>${userToday}</b> akun  
+📈 Minggu Ini  ➝ <b>${userWeek}</b> akun  
+📊 Bulan Ini   ➝ <b>${userMonth}</b> akun  
 
-🌐 <b>Statistik Global</b>
-• Hari Ini    : ${globalToday} akun
-• Minggu Ini  : ${globalWeek} akun
-• Bulan Ini   : ${globalMonth} akun
-</blockquote>
+•━━━━━━━━━━━━•  
+🌐 <b>Statistik Global</b>  
+•━━━━━━━━━━━━•  
+📅 Hari Ini    ➝ <b>${globalToday}</b> akun  
+📈 Minggu Ini  ➝ <b>${globalWeek}</b> akun  
+📊 Bulan Ini   ➝ <b>${globalMonth}</b> akun  
 
-⚙️ <b>COMMAND</b>
-• 🏠 Menu Utama   : /start
-• 🔑 Menu Admin   : /admin
-• 🛡️ Admin Panel  : /helpadmin
+•━━━━━━━━━━━━•  
+⚙️ <b>COMMAND</b>  
+•━━━━━━━━━━━━•  
+🏠 <code>/start</code>       → Menu Utama  
+🔑 <code>/admin</code>       → Menu Admin  
+🛡️ <code>/helpadmin</code>  → Admin Panel  
 
-👨‍💻 <b>Pembuat:</b> @ARI_VPN_STORE
-🛠️ <b>Credit:</b> ARI STORE × API POTATO
-🔧 <b>Base:</b> FighterTunnel
-👥 <b>Pengguna BOT:</b> ${jumlahPengguna}
-⏱️ <b>Latency:</b> ${latency} ms
-──────────────────────────`;
+•━━━━━━━━━━━━•  
+🌟 <b>Kenapa Pilih Kami?</b>  
+•━━━━━━━━━━━━•  
+💎 Server Internasional Premium  
+⚡ Full Speed & Anti Limit  
+🎮 Low Ping Gaming Friendly  
+🔧 Config Premium Siap Pakai  
+
+•━━━━━━━━━━━━•  
+👨‍💻 <b>Developer:</b> @WintunelingVPNN
+👥 <b>Pengguna:</b> ${jumlahPengguna}  
+⏱️ <b>Latency:</b> ${latency} ms  
+
+⚡💎 <b>🌐 Dapatkan VPN Cepat, Aman & Unlimited Sekarang! 🌐</b>
+`;
 
   const keyboard = [
     [
