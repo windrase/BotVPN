@@ -2,15 +2,8 @@
 
 # Daftar server (bisa kamu ganti sesuai list)
 servers=(
-  "sgvip.domainmu.web.id"
-  "sgvvip.domainmu.web.id"
-  "sgvvip2.domainmu.web.id"
-  "sgvvip3.domainmu.web.id"
-  "team1.domainmu.web.id"
-  "team2.domainmu.web.id"
-  "idnusa.domainmu.web.id"
-  "idnusa2.domainmu.web.id"
-  "idnusastb.domainmu.web.id"
+  "vvip.wintunneling.web.id"
+  "premium.wintunneling.web.id"
 )
 
 # Daftar port yang ingin dicek
