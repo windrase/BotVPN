@@ -336,8 +336,9 @@ const statusReseller = isReseller ? 'Reseller' : 'Bukan Reseller';
 
   const messageText = `
 ⚡🔥 <b>BOT VPN ${NAMA_STORE}</b> 🔥⚡
-🌍 Cepat • 🔒 Aman • Unlimited  
-
+•━━━━━━━━━━━━━• •━━━━━━━━━━━━━━• 
+🌍 Cepat • 🔒 Aman • 📊 Lengkap 
+•━━━━━━━━━━━━━• •━━━━━━━━━━━━━━• 
 👋 <b>Halo Selamat Datang, <code>${userName}</code></b>  
 🆔 <b>ID</b>       : <code>${userId}</code>  
 💰 <b>Saldo</b>    : <code>Rp ${saldo}</code>  
