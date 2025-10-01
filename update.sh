@@ -13,7 +13,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || echo -e "${
 apt-get install -y nodejs || echo -e "${red}Failed to install Node.js${neutral}"
         
     if [ ! -f /root/BotVPN/app.js ]; then
-        git clone https://github.com/arivpnstores/BotVPN.git /root/BotVPN
+        git clone https://github.com/windrase/BotVPN.git /root/BotVPN
     fi
 
 npm install -g npm@latest
@@ -26,7 +26,7 @@ npm install -g pm2
     if [ -n "$(ls -A /root/BotVPN)" ]; then
         chmod +x /root/BotVPN/*
     fi
-wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ecosystem.config.js"
+wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/windrase/BotVPN/main/ecosystem.config.js"
 # stop dulu servicenya
 systemctl stop sellvpn.service
 
