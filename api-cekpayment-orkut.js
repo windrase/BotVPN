@@ -1,32 +1,24 @@
 // api-cekpayment-orkut.js
 const qs = require('qs');
 
-// bikin function biar gampang ganti request_time otomatis
+// Function agar tetap kompatibel dengan app.js
 function buildPayload() {
   return qs.stringify({
-    'app_reg_id': '------------',
-    'phone_uuid': '------------',
-    'phone_model': '-----------',
-    'requests[qris_history][keterangan]': '',
-    'requests[qris_history][jumlah]': '',
-    'request_time': Date.now().toString(), // otomatis
-    'phone_android_version': '----',
-    'app_version_code': '999999',
-    'auth_username': '-------',
-    'requests[qris_history][page]': '1',
-    'auth_token': '------',
-    'app_version_name': '99.99.99',
-    'ui_mode': 'dark'
+    'username': 'yantoxxx',
+    'token': '1342xxxx:149:i3NBVaZqHjEYnvuImxWKACgxxxxx',
+    'jenis': 'masuk'
   });
 }
 
+// Header tetap sama agar tidak error di app.js
 const headers = {
   'Content-Type': 'application/x-www-form-urlencoded',
   'Accept-Encoding': 'gzip',
   'User-Agent': 'okhttp/4.12.0'
 };
 
-// URL sering berubah, jadi sesuai in dengan hasil seniff
-const API_URL = 'https://app.orderkuota.com/api/v2/qris/mutasi/1xxxx';
+// URL baru sesuai curl-mu
+const API_URL = 'https://orkutapi.andyyuda41.workers.dev/api/qris-history';
 
+// Ekspor agar app.js tetap bisa require dengan struktur lama
 module.exports = { buildPayload, headers, API_URL };
