@@ -3,8 +3,8 @@ const sqlite3 = require('sqlite3').verbose();
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const app = express();
-const { buildPayload, headers, API_URL } = require('./api-cekpayment-orkut');
 const axios = require('axios');
+const { buildPayload, headers, API_URL } = require('./api-cekpayment-orkut');
 const winston = require('winston');
 const logger = winston.createLogger({
   level: 'info',
@@ -3183,24 +3183,26 @@ const qrBuffer = Buffer.from(qrResponse.data);
 async function checkQRISStatus() {
   try {
     const pendingDeposits = Object.entries(global.pendingDeposits);
-    
+
     for (const [uniqueCode, deposit] of pendingDeposits) {
       if (deposit.status !== 'pending') continue;
-      
+
       const depositAge = Date.now() - deposit.timestamp;
       if (depositAge > 5 * 60 * 1000) {
         try {
           if (deposit.qrMessageId) {
             await bot.telegram.deleteMessage(deposit.userId, deposit.qrMessageId);
           }
-          await bot.telegram.sendMessage(deposit.userId, 
+          await bot.telegram.sendMessage(
+            deposit.userId,
             '❌ *Pembayaran Expired*\n\n' +
-            'Waktu pembayaran telah habis. Silakan klik Top Up lagi untuk mendapatkan QR baru.',
+              'Waktu pembayaran telah habis. Silakan klik Top Up lagi untuk mendapatkan QR baru.',
             { parse_mode: 'Markdown' }
           );
-    } catch (error) {
+        } catch (error) {
           logger.error('Error deleting expired payment messages:', error);
         }
+
         delete global.pendingDeposits[uniqueCode];
         db.run('DELETE FROM pending_deposits WHERE unique_code = ?', [uniqueCode], (err) => {
           if (err) logger.error('Gagal hapus pending_deposits (expired):', err.message);
@@ -3209,16 +3211,36 @@ async function checkQRISStatus() {
       }
 
       try {
-    const data = buildPayload(); // payload selalu fresh
-    const resultcek = await axios.post(API_URL, data, { headers });
-    //console.log("Full API Response:", resultcek);
-        const list = resultcek.data?.qris_history?.results || [];
-        const lastTen = list.slice(0, 10);
+        const data = buildPayload(); // payload selalu fresh
+        const resultcek = await axios.post(API_URL, data, { headers, timeout: 5000 });
+
+        // API balik teks (bukan JSON)
+        const responseText = resultcek.data;
+        //console.log('📦 Raw response from API:\n', responseText);
+
+        // Parse teks jadi array transaksi
+        const transaksiList = [];
+        const blocks = responseText.split('------------------------').filter(Boolean);
+
+        for (const block of blocks) {
+          const kreditMatch = block.match(/Kredit\s*:\s*([\d.]+)/);
+          const tanggalMatch = block.match(/Tanggal\s*:\s*(.+)/);
+          const brandMatch = block.match(/Brand\s*:\s*(.+)/);
+          if (kreditMatch) {
+            transaksiList.push({
+              tanggal: tanggalMatch ? tanggalMatch[1].trim() : '-',
+              kredit: Number(kreditMatch[1].replace(/\./g, '')),
+              brand: brandMatch ? brandMatch[1].trim() : '-'
+            });
+          }
+        }
+
+        // Debug hasil parsing
+        console.log('✅ Parsed transaksi:', transaksiList);
+
+        // Cocokkan nominal
         const expectedAmount = deposit.amount;
-        const matched = lastTen.find(item => {
-          const nominal = Number(item.kredit.replace(/\./g, ''));
-          return nominal === expectedAmount;
-        });
+        const matched = transaksiList.find(t => t.kredit === expectedAmount);
 
         if (matched) {
           const success = await processMatchingPayment(deposit, matched, uniqueCode);
