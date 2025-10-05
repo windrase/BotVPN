@@ -22,11 +22,12 @@ npm install -g pm2
     if ! npm list --prefix /root/BotVPN express telegraf axios moment sqlite3 >/dev/null 2>&1; then
         npm install --prefix /root/BotVPN sqlite3 express crypto telegraf axios dotenv
     fi
-
+    
     if [ -n "$(ls -A /root/BotVPN)" ]; then
         chmod +x /root/BotVPN/*
     fi
 wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ecosystem.config.js"
+wget -O /root/BotVPN/app.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/app.js"
 # stop dulu servicenya
 systemctl stop sellvpn.service
 
