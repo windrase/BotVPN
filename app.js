@@ -1043,24 +1043,43 @@ const { exec } = require('child_process');
 
 bot.action('cek_service', async (ctx) => {
   try {
-    const message = await ctx.reply('⏳ Sedang mengecek status server...');
+    const resselDbPath = './ressel.db';
+    const idUser = ctx.from.id.toString().trim();
 
-    exec('chmod +x cek-port.sh && bash cek-port.sh', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Gagal menjalankan skrip: ${error.message}`);
-        return ctx.reply('❌ Terjadi kesalahan saat menjalankan pengecekan.');
+    // 🔍 Cek apakah user termasuk reseller
+    fs.readFile(resselDbPath, 'utf8', async (err, data) => {
+      if (err) {
+        console.error('❌ Gagal membaca file ressel.db:', err.message);
+        return ctx.reply('❌ *Terjadi kesalahan saat membaca data reseller.*', { parse_mode: 'Markdown' });
       }
 
-      if (stderr) {
-        console.error(`Error dari skrip: ${stderr}`);
-        return ctx.reply('❌ Ada output error dari skrip pengecekan.');
+      const resselList = data.split('\n').map(line => line.trim()).filter(Boolean);
+      const isRessel = resselList.includes(idUser);
+
+      if (!isRessel) {
+        return ctx.reply('❌ *Fitur ini hanya untuk Ressel VPN.*', { parse_mode: 'Markdown' });
       }
 
-      // Karena output bash mengandung kode warna ANSI, kita hapus supaya rapi
-      const cleanOutput = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+      // ✅ Jika reseller, lanjut jalankan cek service
+      const message = await ctx.reply('⏳ Sedang mengecek status server...');
 
-      ctx.reply(`📡 *Hasil Cek Port:*\n\n\`\`\`\n${cleanOutput}\n\`\`\``, {
-        parse_mode: 'Markdown'
+      exec('chmod +x cek-port.sh && bash cek-port.sh', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Gagal menjalankan skrip: ${error.message}`);
+          return ctx.reply('❌ Terjadi kesalahan saat menjalankan pengecekan.');
+        }
+
+        if (stderr) {
+          console.error(`Error dari skrip: ${stderr}`);
+          return ctx.reply('❌ Ada output error dari skrip pengecekan.');
+        }
+
+        // Bersihkan kode warna ANSI agar output rapi
+        const cleanOutput = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+
+        ctx.reply(`📡 *Hasil Cek Port:*\n\n\`\`\`\n${cleanOutput}\n\`\`\``, {
+          parse_mode: 'Markdown'
+        });
       });
     });
   } catch (err) {
@@ -1068,7 +1087,6 @@ bot.action('cek_service', async (ctx) => {
     ctx.reply('❌ Gagal menjalankan pengecekan server.');
   }
 });
-
 
 bot.action('send_main_menu', async (ctx) => {
   if (!ctx || !ctx.match) {
