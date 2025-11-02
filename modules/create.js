@@ -48,6 +48,23 @@ async function createssh(username, password, exp, iplimit, serverId) {
         }
 
         const s = d.data;
+// ======= MULAI LOGIKA UPDATE total_create_akun =======
+if (exp >= 30 && exp <= 135) {
+  db.run(
+    'UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?',
+    [serverId],
+    (err) => {
+      if (err) {
+        console.error('⚠️ Gagal update total_create_akun:', err.message);
+      } else {
+        console.log(`✅ total_create_akun diperbarui untuk serverId ${serverId} dengan exp ${exp}`);
+      }
+    }
+  );
+} else {
+  console.log(`⚠️ Exp ${exp} hari tidak dicatat (kurang dari 30 atau lebih dari 135)`);
+}
+// ======= SELESAI LOGIKA UPDATE =======
 
         const msg = `✅ *SSH Account Created Successfully!*
 
@@ -149,6 +166,23 @@ async function createvmess(username, exp, quota, limitip, serverId) {
         }
 
         const s = d.data;
+// ======= MULAI LOGIKA UPDATE total_create_akun =======
+if (exp >= 30 && exp <= 135) {
+  db.run(
+    'UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?',
+    [serverId],
+    (err) => {
+      if (err) {
+        console.error('⚠️ Gagal update total_create_akun:', err.message);
+      } else {
+        console.log(`✅ total_create_akun diperbarui untuk serverId ${serverId} dengan exp ${exp}`);
+      }
+    }
+  );
+} else {
+  console.log(`⚠️ Exp ${exp} hari tidak dicatat (kurang dari 30 atau lebih dari 135)`);
+}
+// ======= SELESAI LOGIKA UPDATE =======
 
         const msg = `✅ *VMess Account Created Successfully!*
 
@@ -243,6 +277,23 @@ async function createvless(username, exp, quota, limitip, serverId) {
         }
 
         const s = d.data;
+// ======= MULAI LOGIKA UPDATE total_create_akun =======
+if (exp >= 30 && exp <= 135) {
+  db.run(
+    'UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?',
+    [serverId],
+    (err) => {
+      if (err) {
+        console.error('⚠️ Gagal update total_create_akun:', err.message);
+      } else {
+        console.log(`✅ total_create_akun diperbarui untuk serverId ${serverId} dengan exp ${exp}`);
+      }
+    }
+  );
+} else {
+  console.log(`⚠️ Exp ${exp} hari tidak dicatat (kurang dari 30 atau lebih dari 135)`);
+}
+// ======= SELESAI LOGIKA UPDATE =======
 
         const msg = `✅ *VLESS Account Created Successfully!*
 
@@ -335,6 +386,23 @@ async function createtrojan(username, exp, quota, limitip, serverId) {
         }
 
         const s = d.data;
+// ======= MULAI LOGIKA UPDATE total_create_akun =======
+if (exp >= 30 && exp <= 135) {
+  db.run(
+    'UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?',
+    [serverId],
+    (err) => {
+      if (err) {
+        console.error('⚠️ Gagal update total_create_akun:', err.message);
+      } else {
+        console.log(`✅ total_create_akun diperbarui untuk serverId ${serverId} dengan exp ${exp}`);
+      }
+    }
+  );
+} else {
+  console.log(`⚠️ Exp ${exp} hari tidak dicatat (kurang dari 30 atau lebih dari 135)`);
+}
+// ======= SELESAI LOGIKA UPDATE =======
 
         const msg = `✅ *Trojan Account Created Successfully!*
 
