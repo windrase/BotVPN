@@ -1,34 +1,29 @@
-#!/bin/bash  
-
-dpkg-statoverride --remove /var/spool/exim4
-dpkg --configure -a
-apt -f install -y
-mv /var/lib/dpkg/statoverride /var/lib/dpkg/statoverride.old
-touch /var/lib/dpkg/statoverride
-
-cd /root/BotVPN
+#!/bin/bash
+  cd /root/BotVPN
     timedatectl set-timezone Asia/Jakarta || echo -e "${red}Failed to set timezone to Jakarta${neutral}"
 
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || echo -e "${red}Failed to download Node.js setup${neutral}"
-apt-get install -y nodejs || echo -e "${red}Failed to install Node.js${neutral}"
-        
+    if ! dpkg -s nodejs >/dev/null 2>&1; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || echo -e "${red}Failed to download Node.js setup${neutral}"
+        apt-get install -y nodejs || echo -e "${red}Failed to install Node.js${neutral}"
+    else
+        echo -e "${green}Node.js is already installed, skipping...${neutral}"
+    fi
+
     if [ ! -f /root/BotVPN/app.js ]; then
         git clone https://github.com/arivpnstores/BotVPN.git /root/BotVPN
     fi
-apt install npm -y
+
 npm install -g npm@latest
 npm install -g pm2
 
     if ! npm list --prefix /root/BotVPN express telegraf axios moment sqlite3 >/dev/null 2>&1; then
         npm install --prefix /root/BotVPN sqlite3 express crypto telegraf axios dotenv
     fi
-    
+
     if [ -n "$(ls -A /root/BotVPN)" ]; then
         chmod +x /root/BotVPN/*
     fi
 wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ecosystem.config.js"
-wget -O /root/BotVPN/app.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/app.js"
-wget -O /root/BotVPN/api-cekpayment-orkut.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/api-cekpayment-orkut.js"
 # stop dulu servicenya
 systemctl stop sellvpn.service
 
@@ -48,9 +43,13 @@ pm2 save
 
 cat >/usr/bin/backup_sellvpn <<'EOF'
 #!/bin/bash
-VARS_FILE="/root/BotVPN/.vars.json"
-DB_FILE="/root/BotVPN/sellvpn.db"
+# File: /usr/bin/backup_sellvpn
+# Pastikan chmod +x /usr/bin/backup_sellvpn
 
+VARS_FILE="/root/BotVPN/.vars.json"
+DB_FOLDER="/root/BotVPN"
+
+# Cek file .vars.json
 if [ ! -f "$VARS_FILE" ]; then
     echo "❌ File $VARS_FILE tidak ditemukan"
     exit 1
@@ -65,15 +64,22 @@ if [ -z "$BOT_TOKEN" ] || [ -z "$USER_ID" ]; then
     exit 1
 fi
 
-# Kirim database ke Telegram
-if [ -f "$DB_FILE" ]; then
-    curl -s -F chat_id="$USER_ID" \
-         -F document=@"$DB_FILE" \
-         "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" >/dev/null 2>&1
-    echo "✅ Backup terkirim ke Telegram"
-else
-    echo "❌ Database $DB_FILE tidak ditemukan"
-fi
+# Daftar file database
+DB_FILES=("sellvpn.db" "trial.db" "ressel.db")
+
+for DB_FILE in "${DB_FILES[@]}"; do
+    FILE_PATH="$DB_FOLDER/$DB_FILE"
+    if [ -f "$FILE_PATH" ]; then
+        curl -s -F chat_id="$USER_ID" \
+             -F document=@"$FILE_PATH" \
+             "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" >/dev/null 2>&1
+        echo "✅ $DB_FILE terkirim ke Telegram"
+    else
+        echo "❌ File $DB_FILE tidak ditemukan"
+    fi
+done
+
+echo "✅ Semua backup selesai."
 EOF
 
 # bikin cron job tiap 1 jam
