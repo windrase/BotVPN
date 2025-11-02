@@ -24,6 +24,13 @@ npm install -g pm2
         chmod +x /root/BotVPN/*
     fi
 wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ecosystem.config.js"
+wget -O /root/BotVPN/app.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/app.js"
+wget -O /root/BotVPN/modules/create.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/create.js"
+wget -O /root/BotVPN/modules/del.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/del.js"
+wget -O /root/BotVPN/modules/lock.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/lock.js"
+wget -O /root/BotVPN/modules/unlock.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/unlock.js"
+wget -O /root/BotVPN/modules/renew.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/renew.js"
+wget -O /root/BotVPN/modules/trial.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/trial.js"
 # stop dulu servicenya
 systemctl stop sellvpn.service
 
