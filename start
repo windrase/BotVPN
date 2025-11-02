@@ -47,6 +47,9 @@ cek_status() {
 
 setup_bot() {
     timedatectl set-timezone Asia/Jakarta || echo -e "${red}Failed to set timezone to Jakarta${neutral}"
+sudo apt remove -y nodejs
+sudo apt purge -y nodejs
+sudo apt autoremove -y
 apt install npm -y
     if ! dpkg -s nodejs >/dev/null 2>&1; then
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || echo -e "${red}Failed to download Node.js setup${neutral}"
