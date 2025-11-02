@@ -12,7 +12,7 @@
     if [ ! -f /root/BotVPN/app.js ]; then
         git clone https://github.com/arivpnstores/BotVPN.git /root/BotVPN
     fi
-
+apt install -y jq
 npm install -g npm@latest
 npm install -g pm2
 
