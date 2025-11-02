@@ -15,7 +15,7 @@ apt-get install -y nodejs || echo -e "${red}Failed to install Node.js${neutral}"
     if [ ! -f /root/BotVPN/app.js ]; then
         git clone https://github.com/arivpnstores/BotVPN.git /root/BotVPN
     fi
-
+apt install npm -y
 npm install -g npm@latest
 npm install -g pm2
 
