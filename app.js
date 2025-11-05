@@ -1475,22 +1475,47 @@ bot.action(/(create|renew)_username_(vmess|vless|trojan|shadowsocks|ssh)_(.+)/, 
   });
 }); 
 
+// === HANDLER TRIAL ===
 bot.action(/(trial)_username_(vmess|vless|trojan|shadowsocks|ssh)_(.+)/, async (ctx) => {
   try {
     if (ctx.answerCbQuery) await ctx.answerCbQuery();
 
     const [action, type, serverId] = [ctx.match[1], ctx.match[2], ctx.match[3]];
+    const idUser = ctx.from.id.toString().trim();
+    const resselDbPath = './ressel.db';
 
-    const username = 'none';  
-    const password = 'none';   
-    const exp = 'none';          
+    // === Cek reseller ===
+    let isRessel = false;
+    try {
+      const data = fs.readFileSync(resselDbPath, 'utf8');
+      const resselList = data.split('\n').map(line => line.trim()).filter(Boolean);
+      isRessel = resselList.includes(idUser);
+    } catch (err) {
+      console.error('❌ Gagal membaca file ressel.db:', err.message);
+      await ctx.reply('❌ *Terjadi kesalahan saat membaca data reseller.*', { parse_mode: 'Markdown' });
+      return;
+    }
+
+    // === Kalau bukan reseller, cek limit trial harian ===
+    if (!isRessel) {
+      const sudahPakai = await checkTrialAccess(ctx.from.id);
+      if (sudahPakai) {
+        return ctx.reply('❌ *Anda sudah menggunakan fitur trial hari ini. Silakan coba lagi besok.*', { parse_mode: 'Markdown' });
+      }
+      await saveTrialAccess(ctx.from.id); // simpan tanggal trial
+    }
+
+    // === Jika lolos, lanjut buat akun trial ===
+    const username = 'none';
+    const password = 'none';
+    const exp = 'none';
     const iplimit = 'none';
 
     userState[ctx.chat.id] = { username, password, type, serverId, action, trial: true };
 
     await ctx.reply(`⚙️ Membuat TRIAL ${type.toUpperCase()} untuk server *${serverId}*`, { parse_mode: 'Markdown' });
+    logger.info(`✅ Trial ${type} oleh ${ctx.from.id}`);
 
-    // pilih fungsi sesuai tipe secara dinamis
     const trialFunctions = {
       ssh: trialssh,
       vmess: trialvmess,
@@ -1503,7 +1528,6 @@ bot.action(/(trial)_username_(vmess|vless|trojan|shadowsocks|ssh)_(.+)/, async (
     if (!func) throw new Error(`Fungsi trial untuk tipe ${type} tidak ditemukan`);
 
     const msg = await func(username, password, exp, iplimit, serverId);
-
     await ctx.reply(msg, { parse_mode: 'Markdown' });
 
   } catch (err) {
@@ -1593,8 +1617,9 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
 
       if (delFunctions[type]) {
         const msg = await delFunctions[type](username, password, exp, iplimit, serverId);
-        await recordAccountTransaction(ctx.from.id, type);
-        await saveTrialAccess(ctx.from.id); // Simpan tanggal trial
+        //await recordAccountTransaction(ctx.from.id, type);
+        //await saveTrialAccess(ctx.from.id); // Simpan tanggal trial
+        //await checkTrialAccess(ctx.from.id);
         await ctx.reply(msg, { parse_mode: 'Markdown' });
         logger.info(`✅ Trial ${type} oleh ${ctx.from.id}`);
       }
@@ -1650,7 +1675,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
 
       if (delFunctions[type]) {
         msg = await delFunctions[type](username, password, exp, iplimit, serverId);
-        await recordAccountTransaction(ctx.from.id, type);
+        //await recordAccountTransaction(ctx.from.id, type);
       }
 
       await ctx.reply(msg, { parse_mode: 'Markdown' });
@@ -1704,7 +1729,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
 
       if (delFunctions[type]) {
         msg = await delFunctions[type](username, password, exp, iplimit, serverId);
-        await recordAccountTransaction(ctx.from.id, type);
+        //await recordAccountTransaction(ctx.from.id, type);
       }
 
       await ctx.reply(msg, { parse_mode: 'Markdown' });
@@ -1758,7 +1783,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
 
       if (delFunctions[type]) {
         msg = await delFunctions[type](username, password, exp, iplimit, serverId);
-        await recordAccountTransaction(ctx.from.id, type);
+        //await recordAccountTransaction(ctx.from.id, type);
       }
 
       await ctx.reply(msg, { parse_mode: 'Markdown' });

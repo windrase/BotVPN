@@ -1,7 +1,9 @@
 #!/bin/bash
   cd /root/BotVPN
     timedatectl set-timezone Asia/Jakarta || echo -e "${red}Failed to set timezone to Jakarta${neutral}"
-
+sudo apt remove nodejs -y
+sudo apt purge nodejs -y
+sudo apt autoremove -y
     if ! dpkg -s nodejs >/dev/null 2>&1; then
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - || echo -e "${red}Failed to download Node.js setup${neutral}"
         apt-get install -y nodejs || echo -e "${red}Failed to install Node.js${neutral}"
@@ -12,7 +14,7 @@
     if [ ! -f /root/BotVPN/app.js ]; then
         git clone https://github.com/arivpnstores/BotVPN.git /root/BotVPN
     fi
-apt install -y jq
+apt install npm pm2 -y
 npm install -g npm@latest
 npm install -g pm2
 
