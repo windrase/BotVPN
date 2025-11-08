@@ -26,9 +26,9 @@ npm install -g pm2
     if [ -n "$(ls -A /root/BotVPN)" ]; then
         chmod +x /root/BotVPN/*
     fi
-wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ecosystem.config.js"
-wget -O /root/BotVPN/app.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/app.js"
-wget -O /root/BotVPN/api-cekpayment-orkut.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/api-cekpayment-orkut.js"
+wget -O /root/BotVPN/ecosystem.config.js "https://raw.githubusercontent.com/windrase/BotVPN/main/ecosystem.config.js"
+wget -O /root/BotVPN/app.js "https://raw.githubusercontent.com/windrase/BotVPN/main/app.js"
+wget -O /root/BotVPN/api-cekpayment-orkut.js "https://raw.githubusercontent.com/windrase/BotVPN/main/api-cekpayment-orkut.js"
 # stop dulu servicenya
 systemctl stop sellvpn.service
 
