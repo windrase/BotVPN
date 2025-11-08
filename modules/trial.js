@@ -29,7 +29,7 @@ async function trialssh(username, password, exp, iplimit, serverId) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -130,7 +130,7 @@ async function trialvmess(username, exp, quota, limitip, serverId) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -224,7 +224,7 @@ async function trialvless(username, exp, quota, limitip, serverId) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -316,7 +316,7 @@ async function trialtrojan(username, exp, quota, limitip, serverId) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
