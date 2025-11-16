@@ -36,7 +36,7 @@ wget -O ss.png "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ss.pn
 wget -O ss2.png "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/ss2.png"
 wget -O start "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/start"
 wget -O update.sh "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/update.sh"
-
+wget -O /root/BotVPN/modules/reseller.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/reseller.js"
 wget -O /root/BotVPN/modules/create.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/create.js"
 wget -O /root/BotVPN/modules/del.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/del.js"
 wget -O /root/BotVPN/modules/lock.js "https://raw.githubusercontent.com/arivpnstores/BotVPN/main/modules/lock.js"

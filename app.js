@@ -5,6 +5,7 @@ const { Telegraf, Markup } = require('telegraf');
 const app = express();
 const axios = require('axios');
 const { buildPayload, headers, API_URL } = require('./api-cekpayment-orkut');
+const { isUserReseller, addReseller, removeReseller, listResellersSync } = require('./modules/reseller');
 const winston = require('winston');
 const logger = winston.createLogger({
   level: 'info',
@@ -79,6 +80,7 @@ const {
 const fsPromises = require('fs/promises');
 const path = require('path');
 const trialFile = path.join(__dirname, 'trial.db');
+const resselFilePath = path.join(__dirname, 'ressel.db');
 
 // Mengecek apakah user sudah pakai trial hari ini
 async function checkTrialAccess(userId) {
@@ -92,6 +94,27 @@ async function checkTrialAccess(userId) {
   } catch (err) {
     return false; // anggap belum pernah pakai kalau file belum ada
   }
+}
+
+async function checkServerAccess(serverId, userId) {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT is_reseller_only FROM Server WHERE id = ?', [serverId], async (err, row) => {
+      if (err) return reject(err);
+      // jika server tidak ada => tolak (caller menangani pesan)
+      if (!row) return resolve({ ok: false, reason: 'not_found' });
+      const flag = row.is_reseller_only === 1 || row.is_reseller_only === '1';
+      if (!flag) return resolve({ ok: true }); // publik
+      // jika reseller-only, cek apakah user terdaftar reseller
+      try {
+        const isR = await isUserReseller(userId);
+        if (isR) return resolve({ ok: true });
+        return resolve({ ok: false, reason: 'reseller_only' });
+      } catch (e) {
+        // fallback: tolak akses
+        return resolve({ ok: false, reason: 'reseller_only' });
+      }
+    });
+  });
 }
 
 // Menyimpan bahwa user sudah pakai trial hari ini
@@ -123,9 +146,22 @@ const API_KEY = vars.API_KEY;
 const GROUP_ID = vars.GROUP_ID;
 
 const bot = new Telegraf(BOT_TOKEN);
+let ADMIN_USERNAME = '';
 const adminIds = ADMIN;
 logger.info('Bot initialized');
 
+(async () => {
+  try {
+    const adminId = Array.isArray(adminIds) ? adminIds[0] : adminIds;
+    const chat = await bot.telegram.getChat(adminId);
+    ADMIN_USERNAME = chat.username ? `@${chat.username}` : 'Admin';
+    logger.info(`Admin username detected: ${ADMIN_USERNAME}`);
+  } catch (e) {
+    ADMIN_USERNAME = 'Admin';
+    logger.warn('Tidak bisa ambil username admin otomatis.');
+  }
+})();
+//
 const db = new sqlite3.Database('./sellvpn.db', (err) => {
   if (err) {
     logger.error('Kesalahan koneksi SQLite3:', err.message);
@@ -157,7 +193,8 @@ db.run(`CREATE TABLE IF NOT EXISTS Server (
   quota INTEGER,
   iplimit INTEGER,
   batas_create_akun INTEGER,
-  total_create_akun INTEGER
+  total_create_akun INTEGER,
+  is_reseller_only INTEGER DEFAULT 0
 )`, (err) => {
   if (err) {
     logger.error('Kesalahan membuat tabel Server:', err.message);
@@ -165,6 +202,17 @@ db.run(`CREATE TABLE IF NOT EXISTS Server (
     logger.info('Server table created or already exists');
   }
 });
+
+db.run(
+  `ALTER TABLE Server ADD COLUMN is_reseller_only INTEGER DEFAULT 0`,
+  (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      logger.error('Gagal menambahkan kolom is_reseller_only:', err.message);
+    } else if (!err) {
+      logger.info('Kolom is_reseller_only berhasil ditambahkan');
+    }
+  }
+);
 
 db.run(`CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -385,6 +433,9 @@ Status: <code>${statusReseller}</code>
       { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' }
     ],
+    [
+      { text: '🤝 Jadi Reseller & Dapat Harga Spesial', callback_data: 'jadi_reseller' }
+    ],
   ];
 
   try {
@@ -438,30 +489,32 @@ bot.command('hapuslog', async (ctx) => {
 bot.command('helpadmin', async (ctx) => {
   const userId = ctx.message.from.id;
   if (!adminIds.includes(userId)) {
-      return ctx.reply('⚠️ Anda tidak memiliki izin untuk menggunakan perintah ini.', { parse_mode: 'Markdown' });
+    return ctx.reply('⚠️ Anda tidak memiliki izin untuk menggunakan perintah ini.', { parse_mode: 'Markdown' });
   }
+
 const helpMessage = `
 *📋 Daftar Perintah Admin:*
 
-1. /addsaldo – Menambahkan saldo ke akun pengguna.
-2. /addserver – Menambahkan server baru.
-3. /addressel – Menambahkan reseller baru.
-4. /delressel – Menghapus ID reseller.
-5. /listressel – Menampilkan daftar reseller.
-6. /broadcast – Mengirim pesan siaran ke semua pengguna.
-7. /editharga – Mengedit harga layanan.
-8. /editauth – Mengedit auth server.
-9. /editdomain – Mengedit domain server.
-10. /editlimitcreate – Mengedit batas pembuatan akun server.  
-11. /editlimitip – Mengedit batas IP server.
-12. /editlimitquota – Mengedit batas quota server.
-13. /editnama – Mengedit nama server.
-14. /edittotalcreate – Mengedit total pembuatan akun server.
-15. /hapuslog – Menghapus log bot.
-16. /backup – Menjalankan backup otomatis.
+1. /addsaldo - Menambahkan saldo ke akun pengguna.
+2. /addserver - Menambahkan server baru.
+3. /addressel - Menambahkan reseller baru.
+4. /delressel - Menghapus ID reseller.
+5. /listressel - Menampilkan daftar reseller.
+6. /broadcast - Mengirim pesan siaran ke semua pengguna.
+7. /editharga - Mengedit harga layanan.
+8. /editauth - Mengedit auth server.
+9. /editdomain - Mengedit domain server.
+10. /editlimitcreate - Mengedit batas pembuatan akun server.
+11. /editlimitip - Mengedit batas IP server.
+12. /editlimitquota - Mengedit batas quota server.
+13. /editnama - Mengedit nama server.
+14. /edittotalcreate - Mengedit total pembuatan akun server.
+15. /hapuslog - Menghapus log bot.
+16. /backup - Menjalankan backup otomatis.
 
 Gunakan perintah ini dengan format yang benar untuk menghindari kesalahan.
 `;
+
   ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 });
 
@@ -573,6 +626,40 @@ bot.command('addsaldo', async (ctx) => {
           ctx.reply(`✅ Saldo sebesar \`${amount}\` berhasil ditambahkan untuk \`user_id\` \`${targetUserId}\`.`, { parse_mode: 'Markdown' });
       });
   });
+});
+
+bot.command('checkressel', async (ctx) => {
+  const userId = ctx.from.id;
+  console.log('[DEBUG] checkressel, userId:', userId);
+  const isR = await isUserReseller(userId);
+  console.log('[DEBUG] isReseller:', isR);
+  ctx.reply(`ID ${userId} ${isR ? 'adalah reseller ✅' : 'bukan reseller ❌'}`);
+});
+
+bot.command('addserver_reseller', async (ctx) => {
+  try {
+    const args = ctx.message.text.split(' ').slice(1);
+    if (args.length < 7) {
+      return ctx.reply('⚠️ Format salah!\n\nGunakan:\n/addserver_reseller <domain> <auth> <harga> <nama_server> <quota> <iplimit> <batas_create_akun>');
+    }
+
+    const [domain, auth, harga, nama_server, quota, iplimit, batas_create_akun] = args;
+    
+    // ✅ TAMBAHKAN total_create_akun di VALUES
+    db.run(`INSERT INTO Server (domain, auth, harga, nama_server, quota, iplimit, batas_create_akun, is_reseller_only, total_create_akun) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [domain, auth, harga, nama_server, quota, iplimit, batas_create_akun],
+      function (err) {
+        if (err) {
+          logger.error('❌ Gagal menambah server reseller:', err.message);
+          return ctx.reply('❌ *Gagal menambah server reseller.*', { parse_mode: 'Markdown' });
+        }
+        ctx.reply('✅ *Server khusus reseller berhasil ditambahkan!*', { parse_mode: 'Markdown' });
+      }
+    );
+  } catch (e) {
+    logger.error('Error di /addserver_reseller:', e);
+    ctx.reply('❌ *Terjadi kesalahan.*', { parse_mode: 'Markdown' });
+  }
 });
 
 bot.command('addserver', async (ctx) => {
@@ -897,6 +984,9 @@ async function handleServiceAction(ctx, action) {
 async function sendAdminMenu(ctx) {
   const adminKeyboard = [
     [
+  { text: ' Tambah Server Reseller', callback_data: 'addserver_reseller' }
+    ],
+    [
       { text: '➕ Tambah Server', callback_data: 'addserver' },
       { text: '❌ Hapus Server', callback_data: 'deleteserver' }
     ],
@@ -951,8 +1041,6 @@ async function sendAdminMenu(ctx) {
     }
   }
 }
-
-const resselFilePath = path.join(__dirname, 'ressel.db');
 
 bot.command('backup', async (ctx) => {
   try {
@@ -1097,6 +1185,27 @@ bot.command('delressel', async (ctx) => {
   }
 });
 
+bot.action('jadi_reseller', async (ctx) => {
+  await ctx.answerCbQuery().catch(() => {});
+  const userId = ctx.from.id;
+
+  await ctx.reply(
+    `📩 Hubungi admin ${ADMIN_USERNAME} untuk menjadi Reseller.\n\n` +
+    `💰 <b>Minimal deposit:</b> Rp100,000\n\n` +
+    `Kirim pesan ke admin dengan format:\n` +
+    `<code>Mau jadi reseller ${userId}</code>`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.action('addserver_reseller', async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  userState[ctx.chat.id] = { step: 'addserver_reseller' };
+  await ctx.reply(
+    '🪄 Silakan kirim data server reseller dengan format:\n\n' +
+    '/addserver_reseller <domain> <auth> <harga> <nama_server> <quota> <iplimit> <batas_create_akun>'
+  );
+});
 
 bot.action('service_trial', async (ctx) => {
   if (!ctx || !ctx.match) {
@@ -1390,60 +1499,68 @@ bot.action('renew_ssh', async (ctx) => {
   }
   await startSelectServer(ctx, 'renew', 'ssh');
 });
+
 async function startSelectServer(ctx, action, type, page = 0) {
   try {
-    logger.info(`Memulai proses ${action} untuk ${type} di halaman ${page + 1}`);
+    const isR = await isUserReseller(ctx.from.id);
+    const query = 'SELECT * FROM Server';
 
-    db.all('SELECT * FROM Server', [], (err, servers) => {
+    db.all(query, [], (err, servers) => {
       if (err) {
         logger.error('⚠️ Error fetching servers:', err.message);
-        return ctx.reply('⚠️ <b>PERHATIAN!</b> Tidak ada server yang tersedia saat ini. Coba lagi nanti!', { parse_mode: 'HTML' });
+        return ctx.reply('⚠️ Tidak ada server yang tersedia saat ini.', { parse_mode: 'HTML' });
       }
 
-      if (servers.length === 0) {
-        logger.info('Tidak ada server yang tersedia');
-        return ctx.reply('⚠️ <b>PERHATIAN!</b> Tidak ada server yang tersedia saat ini. Coba lagi nanti!', { parse_mode: 'HTML' });
-      }
+      // ==== FILTER RESSELLER-ONLY ====
+const filteredServers = servers.filter(server => {
+  const isResellerOnly = Number(server.is_reseller_only) === 1;
 
-      //const serversPerPage = 6; DEFAULT
+  // Jika server hanya untuk reseller
+  if (isResellerOnly && !isR) {
+    logger.info(`Menyembunyikan server ${server.nama_server} untuk user biasa ${ctx.from.id}`);
+    return false;
+  }
+
+  // Jika server publik dan user adalah reseller (optional: sembunyikan server publik untuk reseller)
+  if (!isResellerOnly && isR) {
+    logger.info(`Menyembunyikan server publik ${server.nama_server} untuk reseller ${ctx.from.id}`);
+    return false;
+  }
+
+  return true;
+});
+
+
+      logger.info(`User ${ctx.from.id} melihat ${filteredServers.length} server dari ${servers.length} total`);
+
+      // ==== Pagination & render ====
       const serversPerPage = 10;
-      const totalPages = Math.ceil(servers.length / serversPerPage);
+      const totalPages = Math.ceil(filteredServers.length / serversPerPage);
       const currentPage = Math.min(Math.max(page, 0), totalPages - 1);
       const start = currentPage * serversPerPage;
       const end = start + serversPerPage;
-      const currentServers = servers.slice(start, end);
+      const currentServers = filteredServers.slice(start, end);
 
       const keyboard = [];
       for (let i = 0; i < currentServers.length; i += 2) {
         const row = [];
-        const server1 = currentServers[i];
-        const server2 = currentServers[i + 1];
-        const server1Text = `${server1.nama_server}`;
-        row.push({ text: server1Text, callback_data: `${action}_username_${type}_${server1.id}` });
-
-        if (server2) {
-          const server2Text = `${server2.nama_server}`;
-          row.push({ text: server2Text, callback_data: `${action}_username_${type}_${server2.id}` });
+        row.push({ text: currentServers[i].nama_server, callback_data: `${action}_username_${type}_${currentServers[i].id}` });
+        if (currentServers[i + 1]) {
+          row.push({ text: currentServers[i + 1].nama_server, callback_data: `${action}_username_${type}_${currentServers[i + 1].id}` });
         }
         keyboard.push(row);
       }
 
       const navButtons = [];
-      if (totalPages > 1) { 
-        if (currentPage > 0) {
-          navButtons.push({ text: '⬅️ Back', callback_data: `navigate_${action}_${type}_${currentPage - 1}` });
-        }
-        if (currentPage < totalPages - 1) {
-          navButtons.push({ text: '➡️ Next', callback_data: `navigate_${action}_${type}_${currentPage + 1}` });
-        }
+      if (totalPages > 1) {
+        if (currentPage > 0) navButtons.push({ text: '⬅️ Back', callback_data: `navigate_${action}_${type}_${currentPage - 1}` });
+        if (currentPage < totalPages - 1) navButtons.push({ text: '➡️ Next', callback_data: `navigate_${action}_${type}_${currentPage + 1}` });
       }
-      if (navButtons.length > 0) {
-        keyboard.push(navButtons);
-      }
+      if (navButtons.length) keyboard.push(navButtons);
       keyboard.push([{ text: '🔙 Kembali ke Menu Utama', callback_data: 'send_main_menu' }]);
 
       const serverList = currentServers.map(server => {
-        const hargaPer30Hari = server.harga * 30; 
+        const hargaPer30Hari = server.harga * 30;
         const isFull = server.total_create_akun >= server.batas_create_akun;
         return `🌐 *${server.nama_server}*\n` +
                `💰 Harga per hari: Rp${server.harga}\n` +
@@ -1454,25 +1571,23 @@ async function startSelectServer(ctx, action, type, page = 0) {
       }).join('\n\n');
 
       if (ctx.updateType === 'callback_query') {
-        ctx.editMessageText(`📋 *List Server (Halaman ${currentPage + 1} dari ${totalPages}):*\n\n${serverList}`, {
-          reply_markup: {
-            inline_keyboard: keyboard
-          },
+        ctx.editMessageText(`📋 *List Server (Halaman ${currentPage + 1} dari ${totalPages})*\n\n${serverList}`, {
+          reply_markup: { inline_keyboard: keyboard },
           parse_mode: 'Markdown'
         });
       } else {
-        ctx.reply(`📋 *List Server (Halaman ${currentPage + 1} dari ${totalPages}):*\n\n${serverList}`, {
-          reply_markup: {
-            inline_keyboard: keyboard
-          },
+        ctx.reply(`📋 *List Server (Halaman ${currentPage + 1} dari ${totalPages})*\n\n${serverList}`, {
+          reply_markup: { inline_keyboard: keyboard },
           parse_mode: 'Markdown'
         });
       }
+
       userState[ctx.chat.id] = { step: `${action}_username_${type}`, page: currentPage };
     });
+
   } catch (error) {
     logger.error(`❌ Error saat memulai proses ${action} untuk ${type}:`, error);
-    await ctx.reply(`❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.`, { parse_mode: 'Markdown' });
+    await ctx.reply(`❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan.`, { parse_mode: 'Markdown' });
   }
 }
 
@@ -2148,7 +2263,121 @@ delete userState[ctx.chat.id];
     }
     delete userState[ctx.chat.id];
   }
+  // === 🏷️ TAMBAH SERVER UNTUK RESELLER ===
+if (state && state.step === 'reseller_domain') {
+  state.domain = text;
+  state.step = 'reseller_auth';
+  return ctx.reply('🔑 Masukkan auth server:');
+}
+
+if (state && state.step === 'reseller_auth') {
+  state.auth = text;
+  state.step = 'reseller_harga';
+  return ctx.reply('💰 Masukkan harga server (angka):');
+}
+
+if (state && state.step === 'reseller_harga') {
+  state.harga = text;
+  state.step = 'reseller_nama';
+  return ctx.reply('📝 Masukkan nama server:');
+}
+
+if (state && state.step === 'reseller_nama') {
+  state.nama_server = text;
+  state.step = 'reseller_quota';
+  return ctx.reply('📊 Masukkan quota (GB):');
+}
+
+if (state && state.step === 'reseller_quota') {
+  state.quota = text;
+  state.step = 'reseller_iplimit';
+  return ctx.reply('📶 Masukkan IP limit:');
+}
+
+if (state && state.step === 'reseller_iplimit') {
+  state.iplimit = text;
+  state.step = 'reseller_batas';
+  return ctx.reply('🔢 Masukkan batas create akun:');
+}
+
+if (state && state.step === 'reseller_batas') {
+  state.batas_create_akun = text;
+
+  db.run(
+    `INSERT INTO Server (domain, auth, harga, nama_server, quota, iplimit, batas_create_akun, total_create_akun, is_reseller_only)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1)`,
+    [
+      state.domain,
+      state.auth,
+      parseInt(state.harga),
+      state.nama_server,
+      parseInt(state.quota),
+      parseInt(state.iplimit),
+      parseInt(state.batas_create_akun),
+    ],
+    (err) => {
+      if (err) {
+        logger.error('❌ Gagal menambah server reseller:', err.message);
+        ctx.reply('❌ Gagal menambah server reseller.');
+      } else {
+        ctx.reply(
+          `✅ Server reseller *${state.nama_server}* berhasil ditambahkan!`,
+          { parse_mode: 'Markdown' }
+        );
+      }
+      delete userState[ctx.chat.id];
+    }
+  );
+  return;
+}
+// === 💰 TAMBAH SALDO (LANGKAH 1: INPUT USER ID) ===
+if (state && state.step === 'addsaldo_userid') {
+  state.targetId = text.trim();
+  state.step = 'addsaldo_amount';
+  return ctx.reply('💰 Masukkan jumlah saldo yang ingin ditambahkan:');
+}
+
+// === 💰 TAMBAH SALDO (LANGKAH 1: INPUT USER ID) ===
+if (state && state.step === 'addsaldo_userid') {
+  state.targetId = text.trim();
+  state.step = 'addsaldo_amount';
+  return ctx.reply('💰 Masukkan jumlah saldo yang ingin ditambahkan:');
+}
+
+// === 💰 TAMBAH SALDO (LANGKAH 2: INPUT JUMLAH SALDO) ===
+if (state && state.step === 'addsaldo_amount') {
+  const amount = parseInt(text.trim());
+  if (isNaN(amount) || amount <= 0) {
+    return ctx.reply('⚠️ Jumlah saldo harus berupa angka dan lebih dari 0.');
+  }
+
+  const targetId = state.targetId;
+
+// Tambahkan saldo
+db.run('UPDATE users SET saldo = saldo + ? WHERE user_id = ?', [amount, targetId], (err) => {
+  if (err) {
+    logger.error('❌ Gagal menambah saldo:', err.message);
+    return ctx.reply('❌ Gagal menambah saldo ke user.');
+  }
+
+  // Ambil saldo terbaru
+  db.get('SELECT saldo FROM users WHERE user_id = ?', [targetId], (err2, updated) => {
+    if (err2 || !updated) {
+      ctx.reply(`✅ Saldo sebesar Rp${amount} berhasil ditambahkan ke user ${targetId}.`);
+      logger.info(`Admin ${ctx.from.id} menambah saldo Rp${amount} ke user ${targetId}.`);
+    } else {
+      ctx.reply(`✅ Saldo sebesar Rp${amount} berhasil ditambahkan ke user ${targetId}.\n💳 Saldo sekarang: Rp${updated.saldo}`);
+      logger.info(`Admin ${ctx.from.id} menambah saldo Rp${amount} ke user ${targetId} (Saldo akhir: Rp${updated.saldo}).`);
+    }
+  });
+
+  delete userState[ctx.from.id];
 });
+
+  return;
+}
+});
+//
 
 // === 💳 CEK SALDO USER ===
 bot.action('cek_saldo_user', async (ctx) => {
@@ -3097,19 +3326,29 @@ bot.on('callback_query', async (ctx) => {
   }
 });
 
-
 async function handleDepositState(ctx, userId, data) {
-  let currentAmount = global.depositState[userId].amount;
+  // Cek apakah user reseller
+  const isReseller = await isUserReseller(userId);
+  const statusReseller = isReseller ? 'Reseller' : 'Bukan Reseller';
+  const minDeposit = isReseller ? 100000 : 1000; // 100k untuk reseller, 1k untuk user biasa
+
+  let currentAmount = global.depositState[userId].amount || '';
 
   if (data === 'delete') {
     currentAmount = currentAmount.slice(0, -1);
   } else if (data === 'confirm') {
-    if (currentAmount.length === 0) {
+    const amount = Number(currentAmount) || 0;
+
+    if (amount === 0) {
       return await ctx.answerCbQuery('⚠️ Jumlah tidak boleh kosong!', { show_alert: true });
     }
-    if (parseInt(currentAmount) < 1000) {
-      return await ctx.answerCbQuery('⚠️ Jumlah minimal adalah 1.000 !', { show_alert: true });
+    if (amount < minDeposit) {
+      return await ctx.answerCbQuery(
+        `⚠️ Jumlah minimal deposit untuk ${statusReseller} adalah Rp${minDeposit.toLocaleString()}!`,
+        { show_alert: true }
+      );
     }
+
     global.depositState[userId].action = 'confirm_amount';
     await processDeposit(ctx, currentAmount);
     return;
@@ -3122,14 +3361,14 @@ async function handleDepositState(ctx, userId, data) {
   }
 
   global.depositState[userId].amount = currentAmount;
-  const newMessage = `💰 *Silakan masukkan jumlah nominal saldo yang Anda ingin tambahkan ke akun Anda:*\n\nJumlah saat ini: *Rp ${currentAmount || '0'}*`;
-  
+  const newMessage = `💰 Silakan masukkan jumlah nominal saldo yang Anda ingin tambahkan ke akun Anda:\n\nJumlah saat ini: Rp${currentAmount || '0'}`;
+
   try {
-  if (newMessage !== ctx.callbackQuery.message.text) {
-    await ctx.editMessageText(newMessage, {
-      reply_markup: { inline_keyboard: keyboard_nomor() },
-      parse_mode: 'Markdown'
-    });
+    if (newMessage !== ctx.callbackQuery.message.text) {
+      await ctx.editMessageText(newMessage, {
+        reply_markup: { inline_keyboard: keyboard_nomor() },
+        parse_mode: 'HTML'
+      });
     } else {
       await ctx.answerCbQuery();
     }
@@ -3138,6 +3377,7 @@ async function handleDepositState(ctx, userId, data) {
     logger.error('Error editing message:', error);
   }
 }
+
 
 async function handleAddSaldo(ctx, userStateData, data) {
   let currentSaldo = userStateData.saldo || '';
