@@ -1687,7 +1687,9 @@ await ctx.reply(
 );
 
 logger.info(`✅ Trial ${type} dibuat oleh ${ctx.from.id}`);
-
+const maskedUsername = username.length > 3 
+  ? `${username.slice(0, 3)}${'x'.repeat(username.length - 3)}` 
+  : username; // Kalau kurang dari 3 char, tampilkan tanpa masking
 await bot.telegram.sendMessage(
   GROUP_ID,
   `<blockquote>
@@ -1695,7 +1697,7 @@ await bot.telegram.sendMessage(
 ━━━━━━━━━━━━━━━━━━━━
 👤 <b>User:</b> ${ctx.from.first_name} (${ctx.from.id})
 🧾 <b>Type:</b> ${type.toUpperCase()}
-📛 <b>Username:</b> ${username}
+📛 <b>Username:</b> ${maskedUsername}
 📆 <b>Expired:</b> ${exp1 || '-'}
 💾 <b>Quota:</b> ${quota1 || '-'}
 🌐 <b>Server ID:</b> ${serverId}
@@ -2122,6 +2124,10 @@ if (exp > 365) {
               await recordAccountTransaction(ctx.from.id, 'ssh');
             }
             logger.info(`Account created and transaction recorded for user ${ctx.from.id}, type: ${type}`);
+const maskedUsername = username.length > 3 
+  ? `${username.slice(0, 3)}${'x'.repeat(username.length - 3)}` 
+  : username; // Kalau kurang dari 3 char, tampilkan tanpa masking
+
 // 🔔 Kirim notifikasi ke grup
 await bot.telegram.sendMessage(
   GROUP_ID,
@@ -2130,9 +2136,9 @@ await bot.telegram.sendMessage(
 ━━━━━━━━━━━━━━━━━━━━
 👤 <b>User:</b> ${ctx.from.first_name} (${ctx.from.id})
 🧾 <b>Type:</b> ${type.toUpperCase()}
-📛 <b>Username:</b> ${username}
-📆 <b>Expired:</b> ${exp || '-'}
-💾 <b>Quota:</b> ${quota || '-'}
+📛 <b>Username:</b> ${maskedUsername}
+📆 <b>Expired:</b> ${exp || '0'}
+💾 <b>Quota:</b> ${quota || '0'}
 🌐 <b>Server ID:</b> ${serverId}
 ━━━━━━━━━━━━━━━━━━━━
 </blockquote>`,
@@ -2156,6 +2162,9 @@ await bot.telegram.sendMessage(
               await recordAccountTransaction(ctx.from.id, 'ssh');
             }
             logger.info(`Account renewed and transaction recorded for user ${ctx.from.id}, type: ${type}`);
+const maskedUsername = username.length > 3 
+  ? `${username.slice(0, 3)}${'x'.repeat(username.length - 3)}` 
+  : username; // Kalau kurang dari 3 char, tampilkan tanpa masking
 // 🔔 Kirim notifikasi ke grup
 await bot.telegram.sendMessage(
   GROUP_ID,
@@ -2164,9 +2173,9 @@ await bot.telegram.sendMessage(
 ━━━━━━━━━━━━━━━━━━━━
 👤 <b>User:</b> ${ctx.from.first_name} (${ctx.from.id})
 🧾 <b>Type:</b> ${type.toUpperCase()}
-📛 <b>Username:</b> ${username}
-📆 <b>New Expiry:</b> ${exp || '-'}
-💾 <b>Quota:</b> ${quota || '-'}
+📛 <b>Username:</b> ${maskedUsername}
+📆 <b>New Expiry:</b> ${exp || '0'}
+💾 <b>Quota:</b> ${quota || '0'}
 🌐 <b>Server ID:</b> ${serverId}
 ━━━━━━━━━━━━━━━━━━━━
 </blockquote>`,
