@@ -416,7 +416,11 @@ Status: <code>${statusReseller}</code>
 ⏱️ <b>Latency:</b> ${latency} ms
 ──────────────────────────`;
 
-  const keyboard = [
+let keyboard;
+
+if (isReseller) {
+  // Keyboard untuk reseller (boleh ditambah tombol khusus reseller)
+  keyboard = [
     [
       { text: '➕ Buat Akun', callback_data: 'service_create' },
       { text: '♻️ Perpanjang Akun', callback_data: 'service_renew' }
@@ -428,15 +432,28 @@ Status: <code>${statusReseller}</code>
     [
       { text: '🗝️ Kunci Akun', callback_data: 'service_lock' },
       { text: '🔐 Buka Kunci Akun', callback_data: 'service_unlock' }
-    ],    
+    ],
     [
       { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' }
+    ]
+  ];
+} else {
+  // Keyboard untuk buyer
+  keyboard = [
+    [
+      { text: '➕ Buat Akun', callback_data: 'service_create' },
+      { text: '♻️ Perpanjang Akun', callback_data: 'service_renew' }
+    ],
+    [
+      { text: '⌛ Trial Akun', callback_data: 'service_trial' },
+      { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' },
     ],
     [
       { text: '🤝 Jadi Reseller & Dapat Harga Spesial', callback_data: 'jadi_reseller' }
-    ],
+    ]
   ];
+}
 
   try {
     if (ctx.updateType === 'callback_query') {
