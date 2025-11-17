@@ -29,7 +29,7 @@ if (!/^[a-z0-9-]+$/.test(username)) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -130,7 +130,7 @@ if (!/^[a-z0-9-]+$/.test(username)) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -224,7 +224,7 @@ if (!/^[a-z0-9-]+$/.test(username)) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
@@ -316,7 +316,7 @@ if (!/^[a-z0-9-]+$/.test(username)) {
 -H "Authorization: ${AUTH_TOKEN}" \
 -H "Content-Type: application/json" \
 -H "Accept: application/json" \
--d '{"timelimit":"3h"}'`;
+-d '{"timelimit":"1h"}'`;
 
       exec(curlCommand, (_, stdout) => {
         let d;
