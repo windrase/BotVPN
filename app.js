@@ -943,37 +943,37 @@ async function handleServiceAction(ctx, action) {
   let keyboard;
   if (action === 'create') {
     keyboard = [
-      [{ text: 'Buat Ssh/Ovpn', callback_data: 'create_ssh' }],      
+      [{ text: 'Buat Ssh/Ovpn', callback_data: 'create_ssh' }],       
       [{ text: 'Buat Vmess', callback_data: 'create_vmess' }, { text: 'Buat Vless', callback_data: 'create_vless' }],
       [{ text: 'Buat Trojan', callback_data: 'create_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }]
     ];
   } else if (action === 'trial') {
     keyboard = [
-      [{ text: 'Trial Ssh/Ovpn', callback_data: 'trial_ssh' }],      
+      [{ text: 'Trial Ssh/Ovpn', callback_data: 'trial_ssh' }],       
       [{ text: 'Trial Vmess', callback_data: 'trial_vmess' }, { text: 'Trial Vless', callback_data: 'trial_vless' }],
       [{ text: 'Trial Trojan', callback_data: 'trial_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }],
     ];
   } else if (action === 'renew') {
     keyboard = [
-      [{ text: 'Perpanjang Ssh/Ovpn', callback_data: 'renew_ssh' }],      
+      [{ text: 'Perpanjang Ssh/Ovpn', callback_data: 'renew_ssh' }],       
       [{ text: 'Perpanjang Vmess', callback_data: 'renew_vmess' }, { text: 'Perpanjang Vless', callback_data: 'renew_vless' }],
       [{ text: 'Perpanjang Trojan', callback_data: 'renew_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }],
     ];
   } else if (action === 'del') {
     keyboard = [
-      [{ text: 'Hapus Ssh/Ovpn', callback_data: 'del_ssh' }],      
+      [{ text: 'Hapus Ssh/Ovpn', callback_data: 'del_ssh' }],       
       [{ text: 'Hapus Vmess', callback_data: 'del_vmess' }, { text: 'Hapus Vless', callback_data: 'del_vless' }],
       [{ text: 'Hapus Trojan', callback_data: 'del_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }],
     ];
   } else if (action === 'lock') {
     keyboard = [
-      [{ text: 'Lock Ssh/Ovpn', callback_data: 'lock_ssh' }],      
+      [{ text: 'Lock Ssh/Ovpn', callback_data: 'lock_ssh' }],       
       [{ text: 'Lock Vmess', callback_data: 'lock_vmess' }, { text: 'Lock Vless', callback_data: 'lock_vless' }],
       [{ text: 'Lock Trojan', callback_data: 'lock_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }],
     ];
   } else if (action === 'unlock') {
     keyboard = [
-      [{ text: 'Unlock Ssh/Ovpn', callback_data: 'unlock_ssh' }],      
+      [{ text: 'Unlock Ssh/Ovpn', callback_data: 'unlock_ssh' }],       
       [{ text: 'Unlock Vmess', callback_data: 'unlock_vmess' }, { text: 'Unlock Vless', callback_data: 'unlock_vless' }],
       [{ text: 'Unlock Trojan', callback_data: 'unlock_trojan' }, { text: '🔙 Kembali', callback_data: 'send_main_menu' }],
     ];
@@ -1568,8 +1568,8 @@ const filteredServers = servers.filter(server => {
 
       const navButtons = [];
       if (totalPages > 1) {
-        if (currentPage > 0) navButtons.push({ text: '⬅️ Back', callback_data: `navigate_${action}_${type}_${currentPage - 1}` });
-        if (currentPage < totalPages - 1) navButtons.push({ text: '➡️ Next', callback_data: `navigate_${action}_${type}_${currentPage + 1}` });
+        if (currentPage > 0) navButtons.push({ text: '⬅️ Back', callback_data: `Maps_${action}_${type}_${currentPage - 1}` });
+        if (currentPage < totalPages - 1) navButtons.push({ text: '➡️ Next', callback_data: `Maps_${action}_${type}_${currentPage + 1}` });
       }
       if (navButtons.length) keyboard.push(navButtons);
       keyboard.push([{ text: '🔙 Kembali ke Menu Utama', callback_data: 'send_main_menu' }]);
@@ -1844,7 +1844,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
     if (!/^[a-z0-9]{3,20}$/.test(username)) {
       return ctx.reply('❌ *Username tidak valid. Gunakan huruf kecil dan angka (3–20 karakter).*', { parse_mode: 'Markdown' });
     }
-       //izin ressel saja
+        //izin ressel saja
     const resselDbPath = './ressel.db';
     fs.readFile(resselDbPath, 'utf8', async (err, data) => {
       if (err) {
@@ -1898,7 +1898,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
     if (!/^[a-z0-9]{3,20}$/.test(username)) {
       return ctx.reply('❌ *Username tidak valid. Gunakan huruf kecil dan angka (3–20 karakter).*', { parse_mode: 'Markdown' });
     }
-       //izin ressel saja
+        //izin ressel saja
     const resselDbPath = './ressel.db';
     fs.readFile(resselDbPath, 'utf8', async (err, data) => {
       if (err) {
@@ -1952,7 +1952,7 @@ fs.readFile(resselDbPath, 'utf8', async (err, data) => {
     if (!/^[a-z0-9]{3,20}$/.test(username)) {
       return ctx.reply('❌ *Username tidak valid. Gunakan huruf kecil dan angka (3–20 karakter).*', { parse_mode: 'Markdown' });
     }
-       //izin ressel saja
+        //izin ressel saja
     const resselDbPath = './ressel.db';
     fs.readFile(resselDbPath, 'utf8', async (err, data) => {
       if (err) {
@@ -2329,7 +2329,7 @@ if (state && state.step === 'reseller_batas') {
 
   db.run(
     `INSERT INTO Server (domain, auth, harga, nama_server, quota, iplimit, batas_create_akun, total_create_akun, is_reseller_only)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1)`,
     [
       state.domain,
       state.auth,
@@ -3605,6 +3605,9 @@ function generateRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// ===============================================================
+// MODIFIKASI: Menggunakan API QRIS Milik Sendiri (WINTUNNELING)
+// ===============================================================
 async function processDeposit(ctx, amount) {
   const currentTime = Date.now();
 
@@ -3620,28 +3623,37 @@ async function processDeposit(ctx, amount) {
   // Generate final amount with random suffix
   const finalAmount = Number(amount) + generateRandomNumber(1, 300);
   const adminFee = finalAmount - Number(amount)
+  
   try {
-    const urlQr = DATA_QRIS; // QR destination
-   // console.log('🔍 CEK DATA_QRIS:', urlQr);
+    const urlQr = DATA_QRIS; // QR destination string
     const axios = require('axios');
-//const sharp = require('sharp'); // opsional kalau mau resize
 
-const bayar = await axios.get(`https://api.rajaserverpremium.web.id/orderkuota/createpayment?apikey=AriApiPaymetGetwayMod&amount=${finalAmount}&codeqr=${urlQr}`);
-const get = bayar.data;
+    // 1. Siapkan Payload ke API Wintunneling
+    const payload = {
+        qris_code: urlQr, 
+        amount: finalAmount
+    };
 
-if (get.status !== 'success') {
-  throw new Error('Gagal membuat QRIS: ' + JSON.stringify(get));
-}
+    // 2. Kirim Request ke API Wintunneling (POST)
+    const response = await axios.post('https://api.wintunneling.web.id/api/create-qris', payload, {
+        headers: {
+            'x-api-key': 'WintunelingVPN', 
+            'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 Detik Timeout
+    });
 
-const qrImageUrl = get.result.imageqris?.url;
+    const result = response.data;
 
-if (!qrImageUrl || qrImageUrl.includes('undefined')) {
-  throw new Error('URL QRIS tidak valid: ' + qrImageUrl);
-}
+    // 3. Validasi Respon API
+    if (!result.status) {
+        throw new Error('Gagal membuat QRIS: ' + (result.message || 'Unknown error'));
+    }
 
-// Download gambar QR
-const qrResponse = await axios.get(qrImageUrl, { responseType: 'arraybuffer' });
-const qrBuffer = Buffer.from(qrResponse.data);
+    // 4. Konversi Gambar (Base64 ke Buffer)
+    // Hapus header "data:image/png;base64," agar menjadi raw base64 string
+    const base64Data = result.data.qris_image.replace(/^data:image\/png;base64,/, "");
+    const qrBuffer = Buffer.from(base64Data, 'base64');
 
     const caption =
       `📝 *Detail Pembayaran:*\n\n` +
@@ -3658,6 +3670,7 @@ const qrBuffer = Buffer.from(qrResponse.data);
       caption: caption,
           parse_mode: 'Markdown'
         }); 
+    
     // Hapus pesan input nominal setelah QR code dikirim
     try {
       await ctx.deleteMessage();
@@ -3665,12 +3678,12 @@ const qrBuffer = Buffer.from(qrResponse.data);
       logger.error('Gagal menghapus pesan input nominal:', e.message);
     }
 
-        global.pendingDeposits[uniqueCode] = {
-          amount: finalAmount,
-          originalAmount: amount,
-          userId,
-          timestamp: Date.now(),
-      status: 'pending',
+    global.pendingDeposits[uniqueCode] = {
+        amount: finalAmount,
+        originalAmount: amount,
+        userId,
+        timestamp: Date.now(),
+        status: 'pending',
       qrMessageId: qrMessage.message_id
     };
 
@@ -3682,11 +3695,12 @@ const qrBuffer = Buffer.from(qrResponse.data);
         if (err) logger.error('Gagal insert pending_deposits:', err.message);
       }
     );
-        delete global.depositState[userId];
+    delete global.depositState[userId];
 
   } catch (error) {
-    logger.error('❌ Kesalahan saat memproses deposit:', error);
-    await ctx.editMessageText('❌ *GAGAL! Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi nanti.*', { parse_mode: 'Markdown' });
+    logger.error('❌ Kesalahan saat memproses deposit:', error.message);
+    await ctx.editMessageText('❌ *GAGAL! Terjadi kesalahan saat memproses pembayaran atau server sibuk.*', { parse_mode: 'Markdown' });
+    
     delete global.depositState[userId];
     delete global.pendingDeposits[uniqueCode];
     db.run('DELETE FROM pending_deposits WHERE unique_code = ?', [uniqueCode], (err) => {
