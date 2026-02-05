@@ -283,6 +283,21 @@ db.run(`CREATE TABLE IF NOT EXISTS transactions (
   }
 });
 
+db.run(`CREATE TABLE IF NOT EXISTS v2ray_bug_configs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE,
+  bug TEXT,
+  type TEXT,
+  description TEXT,
+  created_at INTEGER
+)`, (err) => {
+  if (err) {
+    logger.error('Kesalahan membuat tabel v2ray_bug_configs:', err.message);
+  } else {
+    logger.info('V2ray bug configs table created or already exists');
+  }
+});
+
 const userState = {};
 logger.info('User state initialized');
 
@@ -434,6 +449,9 @@ if (isReseller) {
     [
       { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' }
+    ],
+    [
+      { text: '🧩 Config V2Ray', callback_data: 'v2ray_config' }
     ]
   ];
 } else {
@@ -446,6 +464,9 @@ if (isReseller) {
     [
       { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' },
+    ],
+    [
+      { text: '🧩 Config V2Ray', callback_data: 'v2ray_config' }
     ],
     [
       { text: '🤝 Jadi Reseller & Dapat Harga Spesial', callback_data: 'jadi_reseller' }
@@ -1034,6 +1055,9 @@ async function sendAdminMenu(ctx) {
       { text: 'ℹ️ Detail Server', callback_data: 'detailserver' }
     ],
     [
+      { text: '🧩 Tambah Bug V2Ray', callback_data: 'add_v2ray_bug' }
+    ],
+    [
       { text: '🔙 Kembali', callback_data: 'send_main_menu' }
     ]
   ];
@@ -1220,6 +1244,79 @@ bot.action('addserver_reseller', async (ctx) => {
     '🪄 Silakan kirim data server reseller dengan format:\n\n' +
     '/addserver_reseller <domain> <auth> <harga> <nama_server> <quota> <iplimit> <batas_create_akun>'
   );
+});
+
+bot.action('add_v2ray_bug', async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  if (!adminIds.includes(ctx.from.id)) {
+    return ctx.reply('🚫 Anda tidak memiliki izin untuk mengakses fitur ini.');
+  }
+  userState[ctx.chat.id] = { step: 'v2ray_bug_name' };
+  await ctx.reply('📝 *Tulis nama bug konfigurasi:*', { parse_mode: 'Markdown' });
+});
+
+bot.action('v2ray_config', async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  db.all('SELECT id, name FROM v2ray_bug_configs ORDER BY name ASC', [], async (err, rows) => {
+    if (err) {
+      logger.error('Kesalahan mengambil daftar bug v2ray:', err.message);
+      return ctx.reply('❌ Gagal mengambil daftar bug V2Ray. Coba lagi nanti.');
+    }
+    if (rows.length === 0) {
+      return ctx.reply('⚠️ Belum ada bug V2Ray yang tersedia. Hubungi admin.');
+    }
+
+    const buttons = [];
+    for (let i = 0; i < rows.length; i += 2) {
+      const row = [{ text: rows[i].name, callback_data: `v2ray_bug_select_${rows[i].id}` }];
+      if (rows[i + 1]) {
+        row.push({ text: rows[i + 1].name, callback_data: `v2ray_bug_select_${rows[i + 1].id}` });
+      }
+      buttons.push(row);
+    }
+    buttons.push([{ text: '🔙 Kembali', callback_data: 'send_main_menu' }]);
+
+    await ctx.reply('🧩 *Pilih nama bug V2Ray:*', {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+});
+
+bot.action(/v2ray_bug_select_(\d+)/, async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  const bugId = ctx.match[1];
+  db.get('SELECT * FROM v2ray_bug_configs WHERE id = ?', [bugId], async (err, bugConfig) => {
+    if (err || !bugConfig) {
+      logger.error('Kesalahan mengambil bug v2ray:', err?.message);
+      return ctx.reply('❌ Bug V2Ray tidak ditemukan.');
+    }
+
+    userState[ctx.chat.id] = {
+      step: 'v2ray_bug_link',
+      bug: bugConfig.bug,
+      mode: bugConfig.type,
+      name: bugConfig.name
+    };
+
+    await ctx.reply(
+      `<blockquote><b>${bugConfig.name}</b>\n${bugConfig.description}</blockquote>\n\n` +
+      `📨 Kirim link V2Ray (vmess/vless/trojan) untuk dikonfigurasi.`,
+      { parse_mode: 'HTML' }
+    );
+  });
+});
+
+bot.action(/v2ray_bug_type_(websocket|wildcard)/, async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  const state = userState[ctx.chat.id];
+  if (!state || state.step !== 'v2ray_bug_type') {
+    return ctx.reply('❌ Sesi tidak ditemukan. Mulai ulang dari menu admin.');
+  }
+
+  state.type = ctx.match[1];
+  state.step = 'v2ray_bug_description';
+  await ctx.reply('📝 *Tulis deskripsi bug:*', { parse_mode: 'Markdown' });
 });
 
 bot.action('service_trial', async (ctx) => {
@@ -1775,6 +1872,67 @@ bot.on('text', async (ctx) => {
       logger.info(`Admin ${ctx.from.id} mengecek saldo user ${targetId}: Rp${row.saldo}`);
       delete userState[ctx.from.id];
     });
+  }
+  if (state.step === 'v2ray_bug_name') {
+    const name = text;
+    if (!name) {
+      return ctx.reply('⚠️ Nama bug tidak boleh kosong.');
+    }
+    state.name = name;
+    state.step = 'v2ray_bug_address';
+    return ctx.reply('🧩 *Tulis bug/address:*', { parse_mode: 'Markdown' });
+  }
+  if (state.step === 'v2ray_bug_address') {
+    const bug = text;
+    if (!bug) {
+      return ctx.reply('⚠️ Bug tidak boleh kosong.');
+    }
+    state.bug = bug;
+    state.step = 'v2ray_bug_type';
+    return ctx.reply('✅ Pilih tipe bug:', {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'Websocket', callback_data: 'v2ray_bug_type_websocket' },
+            { text: 'Wildcard', callback_data: 'v2ray_bug_type_wildcard' }
+          ]
+        ]
+      }
+    });
+  }
+  if (state.step === 'v2ray_bug_description') {
+    const description = text;
+    if (!description) {
+      return ctx.reply('⚠️ Deskripsi tidak boleh kosong.');
+    }
+    const { name, bug, type } = state;
+    db.run(
+      'INSERT INTO v2ray_bug_configs (name, bug, type, description, created_at) VALUES (?, ?, ?, ?, ?)',
+      [name, bug, type, description, Date.now()],
+      (err) => {
+        if (err) {
+          logger.error('Gagal menyimpan bug v2ray:', err.message);
+          ctx.reply('❌ Gagal menyimpan bug V2Ray. Pastikan nama belum dipakai.');
+        } else {
+          ctx.reply(`✅ Bug V2Ray *${name}* berhasil disimpan!`, { parse_mode: 'Markdown' });
+        }
+        delete userState[ctx.chat.id];
+      }
+    );
+    return;
+  }
+  if (state.step === 'v2ray_bug_link') {
+    try {
+      const configured = applyV2rayBugConfig(text, state.bug, state.mode);
+      await ctx.reply(
+        `<b>✅ V2Ray berhasil dikonfigurasi (${state.name})</b>\n<blockquote>Bug: ${state.bug}\nMode: ${state.mode}</blockquote>\n\n<code>${configured}</code>`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (error) {
+      await ctx.reply(`❌ ${error.message}`);
+    }
+    delete userState[ctx.chat.id];
+    return;
   }
 //
     if (state.step.startsWith('username_trial_')) {
@@ -3603,6 +3761,50 @@ db.all('SELECT * FROM pending_deposits WHERE status = "pending"', [], (err, rows
 
 function generateRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function normalizeBase64(input) {
+  const sanitized = input.replace(/-/g, '+').replace(/_/g, '/').trim();
+  const padLength = (4 - (sanitized.length % 4)) % 4;
+  return sanitized + '='.repeat(padLength);
+}
+
+function applyV2rayBugConfig(link, bug, mode) {
+  if (!link) {
+    throw new Error('Link V2Ray kosong.');
+  }
+
+  if (link.startsWith('vmess://')) {
+    const encoded = link.replace('vmess://', '').trim();
+    const decoded = Buffer.from(normalizeBase64(encoded), 'base64').toString('utf8');
+    const payload = JSON.parse(decoded);
+    const baseHost = payload.sni || payload.host || payload.add;
+    if (!baseHost) {
+      throw new Error('Host asli tidak ditemukan di payload VMess.');
+    }
+    const hostValue = mode === 'wildcard' ? `${bug}.${baseHost}` : baseHost;
+    payload.add = bug;
+    payload.host = hostValue;
+    payload.sni = hostValue;
+    const newEncoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    return `vmess://${newEncoded}`;
+  }
+
+  if (link.startsWith('vless://') || link.startsWith('trojan://')) {
+    const url = new URL(link);
+    const originalHost = url.hostname;
+    const params = url.searchParams;
+    const baseHost = params.get('sni') || params.get('host') || originalHost;
+    const hostValue = mode === 'wildcard' ? `${bug}.${baseHost}` : baseHost;
+
+    url.hostname = bug;
+    params.set('host', hostValue);
+    params.set('sni', hostValue);
+    url.search = params.toString();
+    return url.toString();
+  }
+
+  throw new Error('Format link V2Ray tidak didukung. Gunakan vmess, vless, atau trojan.');
 }
 
 // ===============================================================
