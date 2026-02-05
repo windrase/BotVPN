@@ -451,7 +451,7 @@ if (isReseller) {
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' }
     ],
     [
-      { text: '🧩 Config V2Ray', callback_data: 'v2ray_config' }
+      { text: '🧩 V2ray Ke Config', callback_data: 'v2ray_config' }
     ]
   ];
 } else {
@@ -1058,6 +1058,9 @@ async function sendAdminMenu(ctx) {
       { text: '🧩 Tambah Bug V2Ray', callback_data: 'add_v2ray_bug' }
     ],
     [
+      { text: '🗑️ Hapus Bug V2Ray', callback_data: 'delete_v2ray_bug' }
+    ],
+    [
       { text: '🔙 Kembali', callback_data: 'send_main_menu' }
     ]
   ];
@@ -1253,6 +1256,58 @@ bot.action('add_v2ray_bug', async (ctx) => {
   }
   userState[ctx.chat.id] = { step: 'v2ray_bug_name' };
   await ctx.reply('📝 *Tulis nama bug konfigurasi:*', { parse_mode: 'Markdown' });
+});
+
+bot.action('delete_v2ray_bug', async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  if (!adminIds.includes(ctx.from.id)) {
+    return ctx.reply('🚫 Anda tidak memiliki izin untuk mengakses fitur ini.');
+  }
+  db.all('SELECT id, name FROM v2ray_bug_configs ORDER BY name ASC', [], async (err, rows) => {
+    if (err) {
+      logger.error('Kesalahan mengambil daftar bug v2ray:', err.message);
+      return ctx.reply('❌ Gagal mengambil daftar bug V2Ray. Coba lagi nanti.');
+    }
+    if (rows.length === 0) {
+      return ctx.reply('⚠️ Belum ada bug V2Ray yang tersedia.');
+    }
+
+    const buttons = [];
+    for (let i = 0; i < rows.length; i += 2) {
+      const row = [{ text: rows[i].name, callback_data: `v2ray_bug_delete_${rows[i].id}` }];
+      if (rows[i + 1]) {
+        row.push({ text: rows[i + 1].name, callback_data: `v2ray_bug_delete_${rows[i + 1].id}` });
+      }
+      buttons.push(row);
+    }
+    buttons.push([{ text: '🔙 Kembali', callback_data: 'send_main_menu' }]);
+
+    await ctx.reply('🗑️ *Pilih bug V2Ray yang ingin dihapus:*', {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+});
+
+bot.action(/v2ray_bug_delete_(\d+)/, async (ctx) => {
+  await ctx.answerCbQuery().catch(()=>{});
+  if (!adminIds.includes(ctx.from.id)) {
+    return ctx.reply('🚫 Anda tidak memiliki izin untuk mengakses fitur ini.');
+  }
+  const bugId = ctx.match[1];
+  db.get('SELECT name FROM v2ray_bug_configs WHERE id = ?', [bugId], (err, row) => {
+    if (err || !row) {
+      logger.error('Kesalahan mengambil bug v2ray untuk delete:', err?.message);
+      return ctx.reply('❌ Bug V2Ray tidak ditemukan.');
+    }
+    db.run('DELETE FROM v2ray_bug_configs WHERE id = ?', [bugId], (deleteErr) => {
+      if (deleteErr) {
+        logger.error('Gagal menghapus bug v2ray:', deleteErr.message);
+        return ctx.reply('❌ Gagal menghapus bug V2Ray.');
+      }
+      return ctx.reply(`✅ Bug V2Ray *${row.name}* berhasil dihapus.`, { parse_mode: 'Markdown' });
+    });
+  });
 });
 
 bot.action('v2ray_config', async (ctx) => {
