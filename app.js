@@ -147,7 +147,7 @@ const GROUP_ID = vars.GROUP_ID;
 
 const bot = new Telegraf(BOT_TOKEN);
 let ADMIN_USERNAME = '';
-const adminIds = ADMIN;
+const adminIds = Array.isArray(ADMIN) ? ADMIN : [ADMIN];
 logger.info('Bot initialized');
 
 (async () => {
