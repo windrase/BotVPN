@@ -227,6 +227,16 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
   }
 });
 
+db.run(`CREATE TABLE IF NOT EXISTS bugs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  name TEXT, 
+  url TEXT, 
+  type TEXT,
+  description TEXT
+)`, (err) => {
+  if (err) logger.error('Gagal membuat tabel bugs:', err.message);
+});
+
 db.run(`CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER,
@@ -446,6 +456,9 @@ if (isReseller) {
     [
       { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' },
+    ],
+    [
+      { text: '🛠 V2Ray to Config', callback_data: 'v2ray_config' } 
     ],
     [
       { text: '🤝 Jadi Reseller & Dapat Harga Spesial', callback_data: 'jadi_reseller' }
@@ -1758,7 +1771,138 @@ bot.on('text', async (ctx) => {
 
   if (!state) return; 
     const text = ctx.message.text.trim();
-//
+  // A. LOGIKA ADMIN TAMBAH BUG (Nama -> URL -> Deskripsi -> Auto Type)
+  if (state.step === 'add_bug_name') {
+    state.tempName = text;
+    state.step = 'add_bug_url';
+    return ctx.reply(`<blockquote><b>Nama: ${text}</b>
+    
+🔗 Masukkan <b>Host/URL Bug</b> (Contoh: <i>support.zoom.us</i>):</blockquote>`, { parse_mode: 'HTML' });
+  }
+
+  if (state.step === 'add_bug_url') {
+    state.tempUrl = text;
+    state.step = 'add_bug_desc';
+    return ctx.reply(`<blockquote><b>URL: ${text}</b>
+
+📝 <b>Masukkan Deskripsi:</b>
+(Tulis deskripsi paket, instruksi, dll. Akan muncul di blockquote)</blockquote>`, { parse_mode: 'HTML' });
+  }
+
+  if (state.step === 'add_bug_desc') {
+    const desc = text;
+    const nameCheck = state.tempName.toLowerCase();
+    
+    // --- AUTO DETECT TYPE DARI NAMA ---
+    // Jika nama mengandung "wildcard" -> tipe wildcard. Jika tidak -> ws
+    let type = 'ws'; 
+    if (nameCheck.includes('wildcard')) {
+      type = 'wildcard';
+    }
+
+    // Simpan ke DB
+    db.run("INSERT INTO bugs (name, url, type, description) VALUES (?, ?, ?, ?)", 
+      [state.tempName, state.tempUrl, type, desc], 
+      (err) => {
+        if (err) {
+          ctx.reply("❌ Database error.");
+        } else {
+          ctx.reply(`✅ Bug <b>${state.tempName}</b> tersimpan!
+⚙️ Tipe Otomatis: <b>${type.toUpperCase()}</b>`, { parse_mode: 'HTML' });
+        }
+      }
+    );
+    
+    delete userState[chatId];
+    return;
+  }
+
+  // ============================================================
+  // B. LOGIKA CONVERT LINK (OUTPUT: RAW LINK VLESS/VMESS)
+  // ============================================================
+  
+  if (state.step === 'convert_v2ray_input') {
+    const rawLink = text.trim();
+    const bugData = state.bugData; // { url, type, name }
+    
+    let finalOutput = "";
+
+    try {
+      // --- KASUS 1: VMESS (Base64) ---
+      if (rawLink.startsWith('vmess://')) {
+        const b64 = rawLink.replace('vmess://', '');
+        const str = Buffer.from(b64, 'base64').toString('utf-8');
+        let obj = JSON.parse(str);
+
+        // Simpan Address Asli
+        const originalHost = obj.add;
+
+        // INJECT LOGIC
+        obj.add = bugData.url; // Address jadi Bug
+        obj.ps  = `${obj.ps} | ${bugData.name}`; // Update Nama
+
+        if (bugData.type === 'wildcard') {
+           const newSni = `${bugData.url}.${originalHost}`;
+           obj.host = newSni;
+           obj.sni  = newSni;
+        } else {
+           // Default WS
+           obj.host = originalHost;
+           obj.sni  = originalHost;
+        }
+
+        // Encode Balik ke VMess
+        const newJsonStr = JSON.stringify(obj);
+        const newB64 = Buffer.from(newJsonStr).toString('base64');
+        finalOutput = `vmess://${newB64}`;
+
+      // --- KASUS 2: VLESS / TROJAN (URL String) ---
+      } else if (rawLink.startsWith('vless://') || rawLink.startsWith('trojan://')) {
+        
+        // Parsing URL
+        const urlObj = new URL(rawLink);
+        
+        // Simpan Server Asli
+        const originalServer = urlObj.hostname;
+
+        // Ganti Address Utama dengan Bug
+        urlObj.hostname = bugData.url;
+
+        // Update Fragment (Nama Akun #)
+        urlObj.hash = `${urlObj.hash.replace('#','')} | ${bugData.name}`;
+
+        // INJECT LOGIC (Query Params)
+        if (bugData.type === 'wildcard') {
+           const newSni = `${bugData.url}.${originalServer}`;
+           urlObj.searchParams.set('host', newSni);
+           urlObj.searchParams.set('sni', newSni);
+        } else {
+           // Default WS: SNI & Host tetap Server Asli
+           urlObj.searchParams.set('host', originalServer);
+           urlObj.searchParams.set('sni', originalServer);
+        }
+
+        // Convert Objek URL kembali ke String
+        finalOutput = urlObj.toString();
+
+      } else {
+        return ctx.reply("❌ Link tidak valid. Harus vmess://, vless://, atau trojan://");
+      }
+
+      // KIRIM HASIL (Code Block agar mudah copy)
+      await ctx.reply(`✅ <b>Convert Berhasil!</b>
+
+<code>${finalOutput}</code>`, { parse_mode: 'HTML' });
+
+    } catch (e) {
+      console.error(e);
+      await ctx.reply("❌ Gagal parsing link. Pastikan format link benar.");
+    }
+
+    delete userState[chatId];
+    return;
+  }
+  
   if (state.step === 'cek_saldo_userid') {
     const targetId = ctx.message.text.trim();
     db.get('SELECT saldo FROM users WHERE user_id = ?', [targetId], (err, row) => {
@@ -4021,6 +4165,111 @@ async function recordAccountTransaction(userId, type) {
     );
   });
 }
+// 🛠 FITUR BARU: V2RAY TO CONFIG (LINK OUTPUT)
+// 1. Menu Utama Config: Tampilkan Daftar Bug
+bot.action('v2ray_config', (ctx) => {
+  ctx.answerCbQuery();
+  
+  db.all("SELECT * FROM bugs", (err, rows) => {
+    if (err) return ctx.reply("❌ Gagal memuat database bugs.");
+
+    // Tombol Bug untuk User
+    const bugButtons = rows.map((row) => {
+      return [{ text: `🐞 ${row.name}`, callback_data: `use_bug_${row.id}` }];
+    });
+
+    // Tombol Admin (Hanya muncul jika user adalah Admin)
+    const adminButtons = [];
+    if (adminIds.includes(ctx.from.id)) {
+      adminButtons.push([{ text: '➕ Tambah Bug', callback_data: 'admin_add_bug' }]);
+      if (rows.length > 0) {
+        adminButtons.push([{ text: '➖ Hapus Bug', callback_data: 'admin_del_bug' }]);
+      }
+    }
+
+    const keyboard = [
+      ...bugButtons,
+      ...adminButtons,
+      [{ text: '🔙 Kembali', callback_data: 'send_main_menu' }]
+    ];
+
+    ctx.editMessageText(
+      `🛠 <b>V2Ray to Config Converter</b>\n\nSilakan pilih <b>Bug/SNI</b> yang ingin digunakan:`,
+      { 
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+      }
+    ).catch(() => {
+        // Fallback jika edit gagal
+        ctx.reply(`🛠 <b>V2Ray to Config Converter</b>\n\nSilakan pilih <b>Bug/SNI</b> yang ingin digunakan:`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: keyboard } });
+    });
+  });
+});
+
+// 2. Handler Saat Bug Dipilih (Tampilan Blockquote User)
+bot.action(/use_bug_(\d+)/, (ctx) => {
+  const bugId = ctx.match[1];
+  
+  db.get("SELECT * FROM bugs WHERE id = ?", [bugId], (err, row) => {
+    if (!row) return ctx.reply("❌ Bug tidak ditemukan.");
+
+    // Simpan state
+    userState[ctx.chat.id] = { 
+      step: 'convert_v2ray_input', 
+      bugData: row 
+    };
+
+    const desc = row.description || '-';
+
+    // FORMAT TAMPILAN SESUAI REQUEST
+    ctx.reply(
+      `<blockquote>Paket: ${row.name.toUpperCase()}
+${desc}
+
+Masukkan akun VMESS/VLESS/TROJAN</blockquote>
+
+Ketik /cancel untuk membatalkan`,
+      { parse_mode: 'HTML' }
+    );
+  });
+});
+
+// 3. Admin: Tambah Bug
+bot.action('admin_add_bug', (ctx) => {
+  if (!adminIds.includes(ctx.from.id)) return;
+  ctx.answerCbQuery();
+  userState[ctx.chat.id] = { step: 'add_bug_name' };
+  ctx.reply("➕ <b>Tambah Bug Baru</b>\n\nMasukkan <b>Nama Paket</b> (Contoh: <i>Paket Edu, Conference Wildcard</i>).", { parse_mode: 'HTML' });
+});
+
+// 4. Admin: Hapus Bug
+bot.action('admin_del_bug', (ctx) => {
+  if (!adminIds.includes(ctx.from.id)) return;
+  db.all("SELECT * FROM bugs", (err, rows) => {
+    const buttons = rows.map((row) => {
+      return [{ text: `❌ Hapus: ${row.name}`, callback_data: `do_del_bug_${row.id}` }];
+    });
+    buttons.push([{ text: '🔙 Kembali', callback_data: 'v2ray_config' }]);
+
+    ctx.editMessageText("➖ <b>Hapus Bug</b>\nKlik bug yang ingin dihapus:", {
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: buttons }
+    });
+  });
+});
+
+// Eksekusi Hapus
+bot.action(/do_del_bug_(\d+)/, (ctx) => {
+  const bugId = ctx.match[1];
+  db.run("DELETE FROM bugs WHERE id = ?", [bugId], (err) => {
+    ctx.answerCbQuery("✅ Bug dihapus");
+    // Refresh menu otomatis
+    const dummyCtx = { ...ctx, updateType: 'callback_query' }; 
+    // Anda bisa memanggil ulang v2ray_config atau sekedar notif
+    ctx.reply("✅ Bug dihapus. Ketik /menu untuk kembali.");
+  });
+});
 
 app.listen(port, () => {
   bot.launch().then(() => {
