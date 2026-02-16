@@ -462,8 +462,8 @@ if (isReseller) {
       { text: '♻️ Perpanjang Akun', callback_data: 'service_renew' }
     ],
     [
-      { text: '🧩 Config V2Ray', callback_data: 'v2ray_config' }
-      { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' },
+      { text: '🧩 Config V2Ray', callback_data: 'v2ray_config' },
+      { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' }
     ],
     [
       { text: '🤝 Jadi Reseller & Dapat Harga Spesial', callback_data: 'jadi_reseller' }
