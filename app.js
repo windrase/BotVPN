@@ -462,7 +462,6 @@ if (isReseller) {
       { text: '♻️ Perpanjang Akun', callback_data: 'service_renew' }
     ],
     [
-      { text: '⌛ Trial Akun', callback_data: 'service_trial' },
       { text: '💰 TopUp Saldo', callback_data: 'topup_saldo' },
     ],
     [
@@ -1374,9 +1373,22 @@ bot.action(/v2ray_bug_type_(websocket|wildcard)/, async (ctx) => {
   await ctx.reply('📝 *Tulis deskripsi bug:*', { parse_mode: 'Markdown' });
 });
 
+async function ensureTrialResellerAccess(ctx) {
+  const isReseller = await isUserReseller(ctx.from.id);
+  if (!isReseller) {
+    await ctx.answerCbQuery('Fitur trial hanya untuk reseller.', { show_alert: true }).catch(() => {});
+    await ctx.reply('❌ *Fitur trial hanya tersedia untuk reseller.*', { parse_mode: 'Markdown' });
+    return false;
+  }
+  return true;
+}
+
 bot.action('service_trial', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
+  }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
   }
   await handleServiceAction(ctx, 'trial');
 });
@@ -1476,12 +1488,18 @@ bot.action('trial_vmess', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
   }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
+  }
   await startSelectServer(ctx, 'trial', 'vmess');
 });
 
 bot.action('trial_vless', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
+  }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
   }
   await startSelectServer(ctx, 'trial', 'vless');
 });
@@ -1490,6 +1508,9 @@ bot.action('trial_trojan', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
   }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
+  }
   await startSelectServer(ctx, 'trial', 'trojan');
 });
 
@@ -1497,12 +1518,18 @@ bot.action('trial_shadowsocks', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
   }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
+  }
   await startSelectServer(ctx, 'trial', 'shadowsocks');
 });
 
 bot.action('trial_ssh', async (ctx) => {
   if (!ctx || !ctx.match) {
     return ctx.reply('❌ *GAGAL!* Terjadi kesalahan saat memproses permintaan Anda. Silakan coba lagi nanti.', { parse_mode: 'Markdown' });
+  }
+  if (!(await ensureTrialResellerAccess(ctx))) {
+    return;
   }
   await startSelectServer(ctx, 'trial', 'ssh');
 });
